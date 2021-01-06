@@ -11,7 +11,7 @@
 #' @note if .y is an numeric vector, you probably want a value obtained from
 #' `peruse::range(start, end)` rather than `start:end` or `seq(start,end)`, as when
 #' start is greater than end you want an empty vector rather than counting backwards.
-#' Note that `itertools::range` views end as a supremum, not a maximum, thus `range(a,b)`
+#' Note that `peruse::range` views end as a supremum, not a maximum, thus `range(a,b)`
 #' is equivalent to the set `[`a,b) when a < b or `{}` when b >= a.
 #' @param .x A set, represented as either an atomic vector or a list
 #' @param .y A set to compare to `.x`
@@ -42,10 +42,11 @@
 #'              we_have(~grepl(.y, .x))}
 
 #' #Twin primes 1 through 100
+#' \dontrun{
 #' primes <- 2:100 %>% that_for_all(range(2, .x)) %>% we_have(~.x %% .y != 0)
 #' primes %>% that_for_any(primes) %>% we_have(~abs(.x - .y) == 2)
 #' #Prime numbers 1 through 100 that are two away from a square number
-
+#' }
 #' (2:100 %>% that_for_all(range(2, .x)) %>% we_have(~.x %% .y != 0)) %>%
 #'     that_for_any(range(2, .x)) %>% we_have(~sqrt(.x + 2) == .y | sqrt(.x - 2) == .y)
 #'
@@ -107,22 +108,21 @@ we_have <- function(that_for, formula, result = "vector") {
   }
 
   if (result == "Iterator") {
-    assign(".x", that_for$.x, pos = .e1)
-    assign(".y", that_for$.y, pos = .e1)
-    assign(".formula", formula, pos = .e1)
+
+
   if (that_for$quant == "all") {
     expr <- "
     repeat {
-    ex <- new.env()
-    assign('.x', .e1$.x[i], pos = ex)
-    bool_vec <- purrr::map2_lgl(.e1$.x[i], eval(.e1$.y, envir = ex), .e1$.formula)
+    bool_vec <- purrr::map2_lgl(x_name[i],
+                                rlang::eval_bare(y_name, rlang::env(.x = x_name[i])),
+                                formula_name)
 
     if (all(bool_vec)) {
-          .nth <- .e1$.x[i]
-          i <- i + 1
+          .nth <- x_name[i]
+          i <- i + 1L
           break
     } else {
-          i <- i + 1
+          i <- i + 1L
     }
     }
 
@@ -130,23 +130,25 @@ we_have <- function(that_for, formula, result = "vector") {
   } else {
     expr <- "
     repeat {
-    ex <- new.env()
-    assign('.x', .e1$.x[i], pos = ex)
-    bool_vec <- purrr::map2_lgl(.e1$.x[i], eval(.e1$.y, envir = ex), .e1$.formula)
+    bool_vec <- purrr::map2_lgl(x_name[i],
+                                rlang::eval_bare(y_name, rlang::env(.x = x_name[i])),
+                                formula_name)
 
     if (any(bool_vec)) {
-          .nth <- .e1$.x[i]
-          i <- i + 1
+          .nth <- x_name[i]
+          i <- i + 1L
           break
     } else {
-          i <- i + 1
+          i <- i + 1L
     }
     }
-
     "
   }
+
+    initial <- rlang::env(i = 1, .nth = 0, x_name = that_for$.x, y_name = that_for$.y, formula_name = formula)
+
     return(
-      Iterator(result = expr, initial = c(i = 1, .nth = 0), yield = .nth)
+      Iterator(result = expr, initial = initial, yield = .nth)
     )
   }
 }

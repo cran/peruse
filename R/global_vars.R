@@ -1,3 +1,2 @@
-utils::globalVariables(c(".nth", ".yieldenv"), "peruse", add = TRUE)
+utils::globalVariables(c(".nth", ".iter"), "peruse", add = TRUE)
 
-.yieldenv <- new.env(parent = emptyenv())

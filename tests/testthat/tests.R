@@ -3,26 +3,29 @@ test_that("prime_numbers", {
                17L)
 })
 
+test_that("prime numbers with logical coercion", {
+  expect_equal((2:100 %>% that_for_all(range(2, .x)) %>% we_have(~.x %% .y))[7],
+               17L)
+})
+
 test_that("prime_within_two", {
-          expect_equal(((2:100 %>% that_for_all(range(2,.x)) %>% we_have(~.x %% .y != 0)) %>%
+  expect_equal(((2:100 %>% that_for_all(range(2,.x)) %>% we_have(~.x %% .y != 0)) %>%
                                that_for_any(range(2, .x)) %>% we_have(~sqrt(.x + 2) == .y | sqrt(.x - 2) == .y))[2],
           11L)
 })
 
-test_that("collatz", { .yieldenv <- new.env(parent = emptyenv())
-          expect_equal({expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1";
-           collatz <- Iterator(result = expr,
-                             initial = c(n = 50),
-                              yield = n);
-            yield_next(collatz)},
-          25L)
+test_that("collatz", {
+   expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1"
+   collatz <- Iterator(result = expr,
+                       initial = list(n = 50),
+                       yield = n)
+
+   expect_equal(yield_next(collatz), 25L)
 })
 
 test_that("prime_iter", {
- expect_equal({
-   primes <- 2:100 %>% that_for_all(range(2, .x)) %>% we_have(~.x %% .y != 0, "Iterator")
-   yield_next(primes)},
-   2L)
+  primes <- 2:100 %>% that_for_all(range(2, .x)) %>% we_have(~.x %% .y != 0, "Iterator")
+  expect_equal(yield_more(primes, 2), c(2L, 3L))
  })
 
 test_that("grepl_set", {
@@ -33,69 +36,100 @@ test_that("grepl_set", {
     c("Don't", "wan't"))
 })
 
-test_that("is_Iterator", { .yieldenv <- new.env(parent = emptyenv())
-expect_true({expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1";
-collatz <- Iterator(result = expr,
-                    initial = c(n = 50),
-                    yield = n);
-is_Iterator(collatz)})
+test_that("is_Iterator", {
+  expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1"
+  collatz <- Iterator(result = expr,
+                      initial = list(n = 50),
+                      yield = n);
+  expect_true(is_Iterator(collatz))
 })
 
 test_that("range",{
-          expect_equal(
-            range(0, 100, by = 2L),
-            seq(0,99, by = 2L)
-          )
+  expect_equal(range(0, 100, by = 2L), seq(0,99, by = 2L))
   })
 
 test_that("range_empty",{
-  expect_equal(
-    range(100, 100, by = 2L),
-    numeric()
-  )
+  expect_equal(range(100, 100, by = 2L), numeric())
 })
 
 test_that("yield_more",  {
-               expect_equal({expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1";
-               .yieldenv <- new.env(parent = emptyenv())
-               collatz <- Iterator(result = expr,
-                                   initial = c(n = 50),
-                                   yield = n)
-               yield_more(collatz, 10)},
-               c(25,76,38,19,58,29,88,44,22,11))
+  expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1"
+  collatz <- Iterator(result = expr,
+                      initial = list(n = 50),
+                      yield = n)
+  expect_equal(yield_more(collatz, 10), c(25,76,38,19,58,29,88,44,22,11))
 })
 
 test_that("current",  {
-  expect_equal({
-  .yieldenv <- new.env(parent = emptyenv());
+  expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1"
+  collatz <- Iterator(result = expr,
+                      initial = list(n = 50),
+                      yield = n)
+  expect_equal(current(collatz), 50L)
+})
+
+
+
+test_that("move_more", {
+   expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1";
+   collatz <- Iterator(result = expr,
+                       initial = list(n = 50),
+                       yield = n);
+   move_more(collatz, 10)
+   expect_equal(current(collatz), 11L)
+})
+
+test_that("yield_while", {
   expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1";
   collatz <- Iterator(result = expr,
-                      initial = c(n = 50),
-                      yield = n);
-  current(collatz)},
-  50L)
+                      initial = list(n = 50),
+                      yield = n)
+  expect_equal(yield_while(collatz, "n != 1L"),
+               c(25, 76, 38, 19, 58, 29, 88, 44, 22, 11, 34, 17, 52, 26, 13, 40, 20, 10,  5, 16,  8,  4,  2,  1))
 })
 
-
-
-test_that("move_more", { .yieldenv <- new.env(parent = emptyenv())
-expect_equal({expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1";
-collatz <- Iterator(result = expr,
-                    initial = c(n = 50),
-                    yield = n);
-move_more(collatz, 10);
-current(collatz)},
-11L)
+test_that("Iterators work with environment variables", {
+  m <- 100
+  n <- 10
+  expr <- "out <- n + m"
+  it <- Iterator(result = expr,
+                 initial = list(n = -10),
+                 yield = out)
+  one <- yield_more(it, 5)
+  expect_equal(one, rep(90L, 5))
 })
 
-test_that("yield_while", { .yieldenv <- new.env(parent = emptyenv())
-expect_equal({expr <- "if (n %% 2 == 0) n <- n / 2 else n <- n*3 + 1";
-collatz <- Iterator(result = expr,
-                    initial = c(n = 50),
-                    yield = n);
-yield_while(collatz, "n != 1L")},
-c(25, 76, 38, 19, 58, 29, 88, 44, 22, 11, 34, 17, 52, 26, 13, 40, 20, 10,  5, 16,  8,  4,  2,  1))
+test_that("clone creates a copy", {
+  it <- Iterator('m <- m + 1', list(m = 0), m)
+  other <- clone(it)
+  yield_next(it)
+  expect_equal(current(other) == current(it), FALSE)
 })
 
+test_that("stochastic functions work properly", {
+  p_success <- 0.8
+  threshold <- 100
 
+  expr <- "
+          set.seed(seeds[.iter])
+          n <- n + sample(c(1,-1), 1, prob = c(p_success, 1 - p_success))
+         "
+  iter <- Iterator(expr, list(n = 0, seeds = 1000:1e6), n)
+  sequence <- yield_while(iter, "n <= threshold")
+  expect_equal(sequence[1:4], c(1,0,1,2))
+})
 
+test_that("yield_while() can see `.iter`", {
+  expr <- "m <- m + 1"
+  it <- Iterator(expr, list(m = 0), m)
+  sequence <- yield_while(it, ".iter < 5")
+  expect_equal(sequence, c(1,2,3,4))
+})
+
+test_that("yield_while() can see environment variables", {
+  expr <- "m <- m + 1"
+  r <- 5
+  it <- Iterator(expr, list(m = 0), m)
+  sequence <- yield_while(it, ".iter < r")
+  expect_equal(sequence, c(1,2,3,4))
+})

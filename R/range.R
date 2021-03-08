@@ -5,13 +5,14 @@
 #' Note that \code{peruse::range} views end as a supremum, not a maximum, thus range(a,b)
 #' is equivalent to the set `[`a,b) when a < b or `{}` when b >= a.
 #'
-#' @param a minimum, integer
-#' @param b supremum, integer
+#' @param a minimum
+#' @param b supremum
 #' @param ... other params passed to `base::seq()`
 #' @seealso [base::seq()]
 #' @examples
 #' range(1,5)
 #' range(9,10)
+#' range(1,6, by = 2)
 #' @export
 
 range <- function(a,b, ...) {

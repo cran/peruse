@@ -7,9 +7,9 @@
 range(a, b, ...)
 }
 \arguments{
-\item{a}{minimum, integer}
+\item{a}{minimum}
 
-\item{b}{supremum, integer}
+\item{b}{supremum}
 
 \item{...}{other params passed to \code{base::seq()}}
 }
@@ -22,6 +22,7 @@ is equivalent to the set \code{[}a,b) when a < b or \code{{}} when b >= a.
 \examples{
 range(1,5)
 range(9,10)
+range(1,6, by = 2)
 }
 \seealso{
 \code{\link[base:seq]{base::seq()}}

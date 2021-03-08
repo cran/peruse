@@ -1,6 +1,7 @@
 #'@name yield
 #'@rdname yields
 #'
+#'@rawNamespace import(rlang, except = set_names)
 #'@title Increment an Iterator and Return the Next Value(s)
 #'
 #'@description Finds the value of the next iteration(s) of an Iterator object
@@ -21,13 +22,13 @@
 #'sequence <- yield_more(primes, 100)
 #'
 #'# use `.iter` to reference the current iteration
-#'expr <- "
+#'rwd <- Iterator({
 #'         set.seed(seeds[.iter])
 #'         n <- n + sample(c(-1L, 1L), size = 1L, prob = c(0.25, 0.75))
-#'        "
-#'rwd <- Iterator(result = expr,
-#'                initial = list(n = 0, seeds = 1:100),
-#'                yield = n)
+#'        },
+#'        initial = list(n = 0, seeds = 1:100),
+#'        yield = n)
+#'
 #'yield_more(rwd, 100)
 NULL
 
@@ -36,42 +37,34 @@ NULL
 #'@export
 yield_next <- function(iter) {
   stopifnot(is_Iterator(iter))
-  env <- list2env(iter$initial, parent = rlang::caller_env())
-  yield_name <- as.character(iter$yield)
+  iter$initial$.iter <- 1L
+  env <- list2env(iter$initial, parent = caller_env())
 
-  for (j in seq_along(iter$result)) {
-    eval(iter$result[[j]], envir = env)
-  }
+  eval_bare(iter$result, env = env)
 
   iter$initial <- as.list(env, all.names = TRUE)
+  iter$initial <- within(iter$initial, rm(.iter))
 
-  return(iter$initial[[yield_name]])
+  return(iter$initial[[iter$yield]])
 }
 
 #'@rdname yields
 #'@export
 yield_more <- function(iter, more = 1L) {
-
+  stopifnot(is_Iterator(iter))
   vec <- vector(length = more)
-  iter$initial$.iter <- 1L
+  env <- list2env(iter$initial, parent = caller_env())
+  env$.iter <- 1L
+  expr <- iter$result
+  char <- iter$yield
+
     for (i in seq_len(more)) {
-      vec[[i]] <- yield_next_from_helper(iter)
-      iter$initial$.iter <- iter$initial$.iter + 1L
+      eval_bare(expr, env = env)
+      vec[[i]] <- env[[char]]
+      env$.iter <- i
     }
+  iter$initial <- as.list(env, all.names = TRUE)
   iter$initial <- within(iter$initial, rm(.iter))
   return(vec)
 }
 
-yield_next_from_helper <- function(iter) {
-  stopifnot(is_Iterator(iter))
-  env <- list2env(iter$initial, parent = rlang::caller_env(n = 2))
-  yield_name <- as.character(iter$yield)
-
-  for (j in seq_along(iter$result)) {
-    eval(iter$result[[j]], envir = env)
-  }
-
-  iter$initial <- as.list(env, all.names = TRUE)
-
-  return(iter$initial[[yield_name]])
-}
